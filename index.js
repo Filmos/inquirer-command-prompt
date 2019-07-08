@@ -87,11 +87,14 @@ class CommandPrompt extends InputPrompt {
         } else if (ac.matches) {
           console.log()
           process.stdout.cursorTo(0)
-          console.log(chalk.red('>> ') + chalk.grey('Available commands:'))
+          var prefix = this.opt.autocompletePrefix
+          if(prefix==undefined) prefix = ""
+          console.log(prefix + chalk.red('>> ') + chalk.grey('Available commands:'))
           console.log(CommandPrompt.formatList(
               this.opt.short
                   ? this.short(line, ac.matches)
-                  : ac.matches
+                  : ac.matches,
+              prefix
           ))
           rewrite(line)
         }
@@ -184,8 +187,8 @@ class CommandPrompt extends InputPrompt {
 }
 
 
-CommandPrompt.formatList = (elems, maxSize = 40, ellipsized) => {
-  const cols = process.stdout.columns
+CommandPrompt.formatList = (elems, prefix="", maxSize = 40, ellipsized) => {
+  const cols = process.stdout.columns-prefix.length
   let max = 0
   for (let elem of elems) {
     max = Math.max(max, elem.length + 4)
@@ -197,9 +200,9 @@ CommandPrompt.formatList = (elems, maxSize = 40, ellipsized) => {
   let str = ''
   let c = 1
   for (let elem of elems) {
-    str += CommandPrompt.setSpaces(elem, max, ellipsized)
+    str += (c==1?prefix:"") + CommandPrompt.setSpaces(elem, max, ellipsized)
     if (c === columns) {
-      str += ' '.repeat(cols - max * columns)
+      str += '\n'//' '.repeat(cols - max * columns)
       c = 1
     } else {
       c++
