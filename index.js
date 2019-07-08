@@ -41,7 +41,7 @@ class CommandPrompt extends InputPrompt {
     var newValue = historyFilters[context](value)
     if(newValue !== null && newValue !== undefined) {
       histories[context].push(newValue)
-      historyIndexes[context]++
+      historyIndexes[context] = histories[context].length
     }
   }
 
