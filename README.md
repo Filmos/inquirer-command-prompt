@@ -79,7 +79,7 @@ Run the example in `examples/autocompletions.js` to see how the options work.
 
 ##### historyFilter
 
-It is optional. It has to be a function which returns a string or a null and accepts as a parameter string representing last command used (after "filter" command has been applied).
+It is optional. It has to be a function which returns a string or a null and accepts as a parameter a string representing last command used (after "filter" command has been applied).
 
 This allows you to modify how commands will be saved into history and what will be typed when you use the up and down arrows (which is especially useful if you are dealing with colors in the filter command).
 

@@ -65,11 +65,14 @@ class CommandPrompt extends InputPrompt {
         rewrite(histories[context][historyIndexes[context]])
       }
     }
-    /** go down commands history */
+    /** go down commands history or clear input field if there is no newer entry */
     else if (e.key.name === 'down') {
       if (histories[context][historyIndexes[context] + 1]) {
         historyIndexes[context]++
         rewrite(histories[context][historyIndexes[context]])
+      } else {
+        historyIndexes[context] = histories[context].length
+        rewrite("")
       }
     }
     /** search for command at an autoComplete option
