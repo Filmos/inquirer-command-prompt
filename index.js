@@ -10,7 +10,7 @@ const autoCompleters = {}
 const historyFilters = {}
 
 let context
-
+function deChalk(inp) {return inp.replace(/\033.+?m/g,"")}
 class CommandPrompt extends InputPrompt {
 
 
@@ -45,6 +45,8 @@ class CommandPrompt extends InputPrompt {
     }
   }
 
+
+
   onKeypress(e) {
 
     const rewrite = line => {
@@ -52,7 +54,10 @@ class CommandPrompt extends InputPrompt {
       this.rl.write(null, {ctrl: true, name: 'e'})
     }
 
+    var ghostSuffix = ""
+
     context = this.opt.context ? this.opt.context : '_default'
+
 
     this.initHistory(context, this.opt.historyFilter)
     this.initAutoCompletion(context, this.opt.autoCompletion)
@@ -84,7 +89,7 @@ class CommandPrompt extends InputPrompt {
         var ac = autoCompleters[context](line)
         if (ac.match) {
           rewrite(ac.match)
-        } else if (ac.matches) {
+        } else if (ac.matches && (this.opt.autocompleteStyle == "list" || this.opt.autocompleteStyle == undefined)) {
           console.log()
           process.stdout.cursorTo(0)
           var prefix = this.opt.autocompletePrefix
@@ -102,7 +107,34 @@ class CommandPrompt extends InputPrompt {
         rewrite(line)
       }
     }
-    this.render()
+
+    if(this.opt.autocompleteStyle == "inline") {
+      let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
+      try {
+        var ac = autoCompleters[context](line)
+        if (ac.match) {
+          ghostSuffix = ac.match.slice(line.length)
+        }
+      } catch (err) {
+        rewrite(line)
+      }
+    }
+
+    if(ghostSuffix == "") this.render()
+    else { /* Displays a suffix which isn't included in the input result */
+      var origLine = this.rl.line
+      var displayLine = this.opt.transformer(this.rl.line)
+      var formattedSuffix = chalk.grey(ghostSuffix)
+      this.rl.line+=formattedSuffix
+      this.render()
+      var lineLength = deChalk(this.opt.prefix).length
+                     + deChalk(this.opt.message).length
+                     + deChalk(displayLine).length
+                     - deChalk(origLine).length
+                     + 2
+      process.stdout.moveCursor(Math.min(formattedSuffix.length-deChalk(formattedSuffix).length,lineLength),0)
+      this.rl.line = origLine
+    }
   }
 
   short(l, m) {
