@@ -7,16 +7,22 @@ const InputPrompt = require('inquirer/lib/prompts/input')
 const histories = {}
 const historyIndexes = {}
 const autoCompleters = {}
+const historyFilters = {}
 
 let context
 
 class CommandPrompt extends InputPrompt {
 
 
-  initHistory(context) {
+  initHistory(context, historyFilter) {
     if (!histories[context]) {
       histories[context] = []
       historyIndexes[context] = 0
+      if (historyFilter) {
+        historyFilters[context] = historyFilter
+      } else {
+        historyFilters[context] = (l) => {return l}
+      }
     }
   }
 
@@ -31,9 +37,12 @@ class CommandPrompt extends InputPrompt {
   }
 
   addToHistory(context, value) {
-    this.initHistory(context)
-    histories[context].push(value)
-    historyIndexes[context]++
+    this.initHistory(context, this.opt.historyFilter)
+    var newValue = historyFilters[context](value)
+    if(newValue !== null && newValue !== undefined) {
+      histories[context].push(newValue)
+      historyIndexes[context]++
+    }
   }
 
   onKeypress(e) {
@@ -45,7 +54,7 @@ class CommandPrompt extends InputPrompt {
 
     context = this.opt.context ? this.opt.context : '_default'
 
-    this.initHistory(context)
+    this.initHistory(context, this.opt.historyFilter)
     this.initAutoCompletion(context, this.opt.autoCompletion)
 
     /** go up commands history */
@@ -206,4 +215,3 @@ CommandPrompt.setSpaces = (str, length, ellipsized) => {
 
 
 module.exports = CommandPrompt
-
