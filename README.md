@@ -83,9 +83,18 @@ Possible options:
 
 ![inline](https://i.imgur.com/n8UdcVt.png)
 
-This style will only display autocompletion if there is only one way to autocomplete current inpur (i.e. there is only one matching result or all matching results have the same prefix).
+This style will only display autocompletion if there is only one way to autocomplete current input (i.e. there is only one matching result or all matching results have the same prefix).
 
-It is also worth noting that for "inline" style the autocomplete functions is called whenever any key is pressed (instead of just when the tab key is pressed). Therefore if that function takes significant amount of processing power the input may lag.
+![multiline](https://i.imgur.com/5ntFsq1.png)
+
+This is an advanced version of the `inline` style. In addition to displaying single autocompletions, it will also display a list of all possible autocompletions in a list below the current line.
+
+Unlike the `list` style, this style won't display any autocompletions if there are more than 30 possibilities without a common prefix.
+Controls are also slightly changed for this style - pressing `tab` will cycle through all options and `shift+right` will complete for the current selection.
+
+
+
+It is also worth noting that for `inline` and `multiline` styles the autocomplete functions is called whenever any key is pressed (instead of just when the `tab` key is pressed). Therefore if that function takes significant amount of processing power the input may lag.
 
 ##### autocompletePrefix
 
@@ -101,9 +110,9 @@ Run the example in `examples/autocompletions.js` to see how the options work.
 
 ##### historyFilter
 
-It is optional. It has to be a function which returns a string or a null and accepts as a parameter a string representing last command used (after "filter" command has been applied).
+It is optional. It has to be a function which returns a string or a null and accepts as a parameter a string representing last command used (after `filter` command has been applied).
 
-This allows you to modify how commands will be saved into history and what will be typed when you use the up and down arrows (which is especially useful if you are dealing with colors in the filter command).
+This allows you to modify how commands will be saved into history and what will be typed when you use the up and down arrows (which is especially useful if you are dealing with colors in the `filter` command).
 
 If this function returns null given command isn't saved to the memory at all.
 

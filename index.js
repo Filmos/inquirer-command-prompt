@@ -46,7 +46,6 @@ class CommandPrompt extends InputPrompt {
   }
 
 
-
   onKeypress(e) {
 
     const rewrite = line => {
@@ -55,6 +54,10 @@ class CommandPrompt extends InputPrompt {
     }
 
     var ghostSuffix = ""
+    if(this.linesToSkip != undefined) {
+      process.stdout.moveCursor(0,this.linesToSkip)
+      this.linesToSkip = 0
+    }
 
     context = this.opt.context ? this.opt.context : '_default'
 
@@ -83,7 +86,7 @@ class CommandPrompt extends InputPrompt {
     /** search for command at an autoComplete option
      * which can be an array or a function which returns an array
      * */
-    else if (e.key.name === 'tab') {
+    else if (e.key.name === 'tab' || (e.key.name === "right" && e.key.shift && this.opt.autocompleteStyle == "multiline")) {
       let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
       try {
         var ac = autoCompleters[context](line)
@@ -102,20 +105,54 @@ class CommandPrompt extends InputPrompt {
               prefix
           ))
           rewrite(line)
+        } else if(ac.matches && this.opt.autocompleteStyle == "multiline") {
+          if(e.key.shift) {
+            if(this.selectedComplete == undefined || this.selectedComplete >= ac.matches.length) this.selectedComplete = 0
+            rewrite(ac.matches[this.selectedComplete])
+          } else {
+            if(this.selectedComplete == undefined || this.selectedComplete >= ac.matches.length-1) this.selectedComplete = 0
+            else this.selectedComplete++
+            rewrite(line)
+          }
         }
       } catch (err) {
         rewrite(line)
       }
     }
 
-    if(this.opt.autocompleteStyle == "inline") {
+    var lineLength = deChalk(this.opt.prefix).length
+                   + deChalk(this.opt.message).length
+                   + deChalk(this.opt.transformer(this.rl.line)).length
+                   - deChalk(this.rl.line).length
+                   + 2
+
+    if(this.opt.autocompleteStyle == "inline" || this.opt.autocompleteStyle == "multiline") {
       let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
       try {
         var ac = autoCompleters[context](line)
         if (ac.match) {
           ghostSuffix = ac.match.slice(line.length)
+        } else if (ac.matches && this.opt.autocompleteStyle == "multiline" && ac.matches.length<=30) {
+          var matches = this.opt.short
+              ? this.short(line, ac.matches)
+              : ac.matches
+          var shortCorrect = this.opt.short
+              ? line.length-this.short(line, [line+"a"])[0].length+1
+              : 0
+
+          if(this.selectedComplete == undefined || this.selectedComplete >= matches.length) this.selectedComplete = 0
+          var sel = this.selectedComplete
+          var prefix = this.opt.autocompletePrefix || ""
+
+          ghostSuffix = ac.matches[sel].slice(line.length-shortCorrect)
+          matches = matches.slice(sel+1).concat(matches.slice(0, sel))
+          for(var i=0;i<Math.min(matches.length, 6);i++) {
+            if(i==5 && matches.length>6) ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + "..."
+            else ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + matches[i]
+          }
         }
       } catch (err) {
+        console.log(err)
         rewrite(line)
       }
     }
@@ -123,16 +160,13 @@ class CommandPrompt extends InputPrompt {
     if(ghostSuffix == "") this.render()
     else { /* Displays a suffix which isn't included in the input result */
       var origLine = this.rl.line
-      var displayLine = this.opt.transformer(this.rl.line)
       var formattedSuffix = chalk.grey(ghostSuffix)
       this.rl.line+=formattedSuffix
       this.render()
-      var lineLength = deChalk(this.opt.prefix).length
-                     + deChalk(this.opt.message).length
-                     + deChalk(displayLine).length
-                     - deChalk(origLine).length
-                     + 2
-      process.stdout.moveCursor(Math.min(formattedSuffix.length-deChalk(formattedSuffix).length,lineLength),0)
+      process.stdout.moveCursor(
+        Math.min(formattedSuffix.length-deChalk(formattedSuffix).length,lineLength),
+        -formattedSuffix.split("\n").length + 1)
+      this.linesToSkip = formattedSuffix.split("\n").length - 1
       this.rl.line = origLine
     }
   }
