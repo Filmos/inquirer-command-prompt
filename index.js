@@ -163,12 +163,21 @@ class CommandPrompt extends InputPrompt {
       var origLine = this.rl.line
       var formattedSuffix = (this.opt.autocompleteColor || chalk.grey)(ghostSuffix)
       this.rl.line+=formattedSuffix
+
+      var origTrans = this.opt.transformer
+      if(origTrans != undefined)
+        this.opt.transformer = () => {return origTrans(origLine)}
+
       this.render()
+
+      if(origTrans != undefined)
+        this.opt.transformer = origTrans
+      this.rl.line = origLine
+
       process.stdout.moveCursor(
         Math.min(formattedSuffix.length-deChalk(formattedSuffix).length,lineLength),
         -formattedSuffix.split("\n").length + 1)
       this.linesToSkip = formattedSuffix.split("\n").length - 1
-      this.rl.line = origLine
     }
   }
 
