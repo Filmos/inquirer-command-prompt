@@ -73,6 +73,20 @@ The `short` option is optional and by default it is set to `false`. If set to `t
 
 and you have already typed `foo` it shows just `ba` and `bb` in the suggestions, instead of `foo ba` and `foo bb`
 
+##### autocompleteShortener
+
+The `autocompleteShortener` option is optional. It has to be a function accepting two parameters: current input as a string and list of possible matches as an array of string (those matches are already filtered, so the list will only contain autocompletions that match with the current input); and has to output an array of those matches in a shortened version.
+
+This function will replace the default shortening function (which shortens command based on spaces in them) and will be used when the option `short` is set to true.
+
+An example function may look like this:
+```javascript
+autocompleteShortener: function(line, matches) {
+  for(i in matches) matches[i] = matches[i].slice(line.length)
+  return matches
+}
+```
+
 ##### autocompleteStyle
 
 The `autocompleteStyle` option is optional and by default it is set to "list". This option determines which autocomplete interface will be used.

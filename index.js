@@ -173,6 +173,8 @@ class CommandPrompt extends InputPrompt {
   }
 
   short(l, m) {
+    if(this.opt.autocompleteShortener != undefined)
+      return this.opt.autocompleteShortener(l, m)
     if (l) {
       l = l.replace(/ $/, '')
       for (let i = 0; i < m.length; i++) {
