@@ -89,12 +89,19 @@ This style will only display autocompletion if there is only one way to autocomp
 
 This is an advanced version of the `inline` style. In addition to displaying single autocompletions, it will also display a list of all possible autocompletions in a list below the current line.
 
-Unlike the `list` style, this style won't display any autocompletions if there are more than 30 possibilities without a common prefix.
+Unlike the `list` style, this style won't display any autocompletions if there are more than 30 possibilities without a common prefix (this amount can be configured with `autocompleteMaxOptions`).
 Controls are also slightly changed for this style - pressing `tab` will cycle through all options and `shift+right` will complete for the current selection.
 
 
 
 It is also worth noting that for `inline` and `multiline` styles the autocomplete functions is called whenever any key is pressed (instead of just when the `tab` key is pressed). Therefore if that function takes significant amount of processing power the input may lag.
+
+##### autocompleteMaxOptions
+
+It's an optional integer parameter. If there are more possible autocompletions than this number, none of them will be displayed to prevent screen clutter. Setting it to -1 will remove the upper autocompletion limit.
+
+By default it is set to `-1` for `list` style and to `30` for `multiline` style.
+Due to the nature of the `inline` style, this option doesn't affect it.
 
 ##### autocompletePrefix
 

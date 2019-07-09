@@ -92,11 +92,12 @@ class CommandPrompt extends InputPrompt {
         var ac = autoCompleters[context](line)
         if (ac.match) {
           rewrite(ac.match)
-        } else if (ac.matches && (this.opt.autocompleteStyle == "list" || this.opt.autocompleteStyle == undefined)) {
+        } else if (ac.matches
+               && (this.opt.autocompleteStyle == "list" || this.opt.autocompleteStyle == undefined)
+               && ((this.opt.autocompleteMaxOptions || -1) == -1 || ac.matches.length<=this.opt.autocompleteMaxOptions)) {
           console.log()
           process.stdout.cursorTo(0)
-          var prefix = this.opt.autocompletePrefix
-          if(prefix==undefined) prefix = ""
+          var prefix = this.opt.autocompletePrefix || ""
           console.log(prefix + chalk.red('>> ') + chalk.grey('Available commands:'))
           console.log(CommandPrompt.formatList(
               this.opt.short
@@ -132,7 +133,7 @@ class CommandPrompt extends InputPrompt {
         var ac = autoCompleters[context](line)
         if (ac.match) {
           ghostSuffix = ac.match.slice(line.length)
-        } else if (ac.matches && this.opt.autocompleteStyle == "multiline" && ac.matches.length<=30) {
+        } else if (ac.matches && this.opt.autocompleteStyle == "multiline" && (this.opt.autocompleteMaxOptions == -1 || ac.matches.length<=(this.opt.autocompleteMaxOptions || 30))) {
           var matches = this.opt.short
               ? this.short(line, ac.matches)
               : ac.matches
