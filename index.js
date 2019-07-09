@@ -228,7 +228,7 @@ class CommandPrompt extends InputPrompt {
 
     cmds = cmds.reduce((sum, el) => {
       var lineEscaped = line.replace(/[?+.\\\[\]()^$*|{}]/g, "\\$&")
-      RegExp(`^${lineEscaped}`).test(el) && sum.push(el) && (max = Math.max(max, el.length))
+      RegExp(`^${lineEscaped}`,(this.opt.autocompleteIgnoreCase?"i":"")).test(el) && sum.push(el) && (max = Math.max(max, el.length))
       return sum
     }, [])
 
@@ -237,11 +237,16 @@ class CommandPrompt extends InputPrompt {
       LOOP: for (let i = line.length; i < max; i++) {
         let c = null
         for (let l of cmds) {
+          let cL = l[i]
+          let iC = this.opt.autocompleteIgnoreCase
+          if(iC == true) cL = cL.toLowerCase()
           if (!l[i]) {
             break LOOP
           } else if (!c) {
             c = l[i]
-          } else if (c !== l[i]) {
+          } else if (c !== l[i] && c.toLowerCase() === cL && iC) {
+            c = cL
+          } else if (c.toLowerCase() !== cL || (!iC && c !== cL)) {
             break LOOP
           }
         }

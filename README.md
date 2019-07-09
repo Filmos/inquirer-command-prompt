@@ -64,6 +64,10 @@ The titles of the songs are actually hints, and are not necessary for the comman
 ]
 ```
 
+##### autocompleteIgnoreCase
+
+This is an optional boolean, set to `false` by default. If it is set to `true`, letter casing will be ignored when searching for possible autocompletions.
+
 ##### short
 
 The `short` option is optional and by default it is set to `false`. If set to `true` it cuts the suggestion leaving only the part that has not been already typed. For example, if there are the following command available
