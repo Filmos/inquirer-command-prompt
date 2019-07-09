@@ -99,7 +99,7 @@ class CommandPrompt extends InputPrompt {
           process.stdout.cursorTo(0)
           var prefix = this.opt.autocompletePrefix || ""
           console.log(prefix + chalk.red('>> ') + chalk.grey('Available commands:'))
-          console.log(CommandPrompt.formatList(
+          console.log(this.formatList(
               this.opt.short
                   ? this.short(line, ac.matches)
                   : ac.matches,
@@ -161,7 +161,7 @@ class CommandPrompt extends InputPrompt {
     if(ghostSuffix == "") this.render()
     else { /* Displays a suffix which isn't included in the input result */
       var origLine = this.rl.line
-      var formattedSuffix = chalk.grey(ghostSuffix)
+      var formattedSuffix = (this.opt.autocompleteColor || chalk.grey)(ghostSuffix)
       this.rl.line+=formattedSuffix
       this.render()
       process.stdout.moveCursor(
@@ -253,32 +253,35 @@ class CommandPrompt extends InputPrompt {
     }.bind(this))
   }
 
-}
-
-
-CommandPrompt.formatList = (elems, prefix="", maxSize = 40, ellipsized) => {
-  const cols = process.stdout.columns-prefix.length
-  let max = 0
-  for (let elem of elems) {
-    max = Math.max(max, elem.length + 4)
-  }
-  if (ellipsized && max > maxSize) {
-    max = maxSize
-  }
-  let columns = (cols / max) | 0
-  let str = ''
-  let c = 1
-  for (let elem of elems) {
-    str += (c==1?prefix:"") + CommandPrompt.setSpaces(elem, max, ellipsized)
-    if (c === columns) {
-      str += '\n'//' '.repeat(cols - max * columns)
-      c = 1
-    } else {
-      c++
+  formatList(elems, prefix="", maxSize = 40, ellipsized) {
+    const cols = process.stdout.columns-prefix.length
+    let max = 0
+    for (let elem of elems) {
+      max = Math.max(max, elem.length + 4)
     }
+    if (ellipsized && max > maxSize) {
+      max = maxSize
+    }
+    let columns = (cols / max) | 0
+    let str = ''
+    let c = 1
+    for (let elem of elems) {
+      let spacedElem = CommandPrompt.setSpaces(elem, max, ellipsized)
+      if(this.opt.autocompleteColor != undefined) spacedElem = this.opt.autocompleteColor(spacedElem)
+      str += (c==1?prefix:"") + spacedElem
+      if (c === columns) {
+        str += '\n'//' '.repeat(cols - max * columns)
+        c = 1
+      } else {
+        c++
+      }
+    }
+    return str
   }
-  return str
+
 }
+
+
 
 CommandPrompt.setSpaces = (str, length, ellipsized) => {
   if (ellipsized && str.length > length - 4) {

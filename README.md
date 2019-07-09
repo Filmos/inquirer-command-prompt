@@ -30,6 +30,7 @@ You can change the type `command` with whatever you like, the prompt is anonymou
         },
         // optional
         autoCompletion: ['ls', 'echo', 'find', 'cat', 'help'],
+        autocompleteColor: chalk.grey,
         context: 0,
         short: false
       }
@@ -55,7 +56,7 @@ edit 12: Love is in the air
 edit 36: Like a virgin
 ```
 The titles of the songs are actually hints, and are not necessary for the command which is supposed to be only `edit 12`. So, you want that when the user presses TAB only `edit 12` is rendered. To obtain this, you can pass the following command list:
-```
+```javascript
 [
   { filter: str => str.split(':')[0] },
   'edit 12: Love is in the air',
@@ -67,7 +68,7 @@ The titles of the songs are actually hints, and are not necessary for the comman
 
 The `short` option is optional and by default it is set to `false`. If set to `true` it cuts the suggestion leaving only the part that has not been already typed. For example, if there are the following command available
 
-```
+```javascript
 ['foo ba', 'foo bb']
 ```
 
@@ -109,6 +110,10 @@ Controls are also slightly changed for this style - pressing `tab` will cycle th
 
 
 It is also worth noting that for `inline` and `multiline` styles the autocomplete functions is called whenever any key is pressed (instead of just when the `tab` key is pressed). Therefore if that function takes significant amount of processing power the input may lag.
+
+##### autocompleteColor
+
+This option is optional. It has to be a chalk function which will be used to format autocompletion.
 
 ##### autocompleteMaxOptions
 
