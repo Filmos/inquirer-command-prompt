@@ -153,7 +153,7 @@ class CommandPrompt extends InputPrompt {
           }
         }
       } catch (err) {
-        console.log(err)
+        console.error(err)
         rewrite(line)
       }
     }
@@ -173,24 +173,29 @@ class CommandPrompt extends InputPrompt {
   }
 
   short(l, m) {
-    if(this.opt.autocompleteShortener != undefined)
-      return this.opt.autocompleteShortener(l, m)
-    if (l) {
-      l = l.replace(/ $/, '')
-      for (let i = 0; i < m.length; i++) {
-        if (m[i] == l) {
-          m.splice(i, 1)
-          i--
-        } else {
-          if (m[i][l.length] == ' ') {
-            m[i] = m[i].replace(RegExp(l + ' '), '')
+    var defFunction = (l, m) => {
+      if (l) {
+        l = l.replace(/ $/, '')
+        for (let i = 0; i < m.length; i++) {
+          if (m[i] == l) {
+            m.splice(i, 1)
+            i--
           } else {
-            m[i] = m[i].replace(RegExp(l.replace(/ [^ ]+$/, '') + ' '), '')
+            let escL = l.replace(/[?+.\\\[\]()^$*|{}]/g, "\\$&")
+            if (m[i][l.length] == ' ') {
+              m[i] = m[i].replace(RegExp(escL + ' '), '')
+            } else {
+              m[i] = m[i].replace(RegExp(escL.replace(/ [^ ]+$/, '') + ' '), '')
+            }
           }
         }
       }
+      return m
     }
-    return m
+    if(this.opt.autocompleteShortener == undefined)
+      return defFunction(l, m)
+    else
+      return this.opt.autocompleteShortener(l, m, defFunction)
   }
 
   autoCompleter(line, cmds) {

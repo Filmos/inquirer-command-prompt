@@ -80,9 +80,12 @@ The `autocompleteShortener` option is optional. It has to be a function acceptin
 
 This function will replace the default shortening function (which shortens command based on spaces in them) and will be used when the option `short` is set to true.
 
+There is also a third, optional parameter. It's a function which normally would be executed as a shortener. It can be used if you only want custom shortening under certain circumstances or if you want to modify matches before passing them for shortening.
+
 An example function may look like this:
 ```javascript
-autocompleteShortener: function(line, matches) {
+autocompleteShortener: function(line, matches, func) {
+  if(line[0] === "!") return func(line, matches)
   for(i in matches) matches[i] = matches[i].slice(line.length)
   return matches
 }
