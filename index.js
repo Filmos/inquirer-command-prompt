@@ -137,15 +137,12 @@ class CommandPrompt extends InputPrompt {
           var matches = this.opt.short
               ? this.short(line, ac.matches)
               : ac.matches
-          var shortCorrect = this.opt.short
-              ? line.length-this.short(line, [line+"a"])[0].length+1
-              : 0
-
           if(this.selectedComplete == undefined || this.selectedComplete >= matches.length) this.selectedComplete = 0
           var sel = this.selectedComplete
           var prefix = this.opt.autocompletePrefix || ""
+          var shortCorrect = ac.matches[sel].length-matches[sel].length
 
-          ghostSuffix = ac.matches[sel].slice(line.length-shortCorrect)
+          ghostSuffix = matches[sel].slice(line.length-shortCorrect)
           matches = matches.slice(sel+1).concat(matches.slice(0, sel))
           for(var i=0;i<Math.min(matches.length, 6);i++) {
             if(i==5 && matches.length>6) ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + "..."
@@ -202,9 +199,9 @@ class CommandPrompt extends InputPrompt {
       return m
     }
     if(this.opt.autocompleteShortener == undefined)
-      return defFunction(l, m)
+      return defFunction(l, m.slice(0))
     else
-      return this.opt.autocompleteShortener(l, m, defFunction)
+      return this.opt.autocompleteShortener(l, m.slice(0), defFunction)
   }
 
   autoCompleter(line, cmds) {
