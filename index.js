@@ -213,7 +213,8 @@ class CommandPrompt extends InputPrompt {
     }
 
     cmds = cmds.reduce((sum, el) => {
-      RegExp(`^${line}`).test(el) && sum.push(el) && (max = Math.max(max, el.length))
+      var lineEscaped = line.replace(/[?+.\\\[\]()^$*|{}]/g, "\\$&")
+      RegExp(`^${lineEscaped}`).test(el) && sum.push(el) && (max = Math.max(max, el.length))
       return sum
     }, [])
 
