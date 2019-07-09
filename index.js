@@ -166,7 +166,7 @@ class CommandPrompt extends InputPrompt {
 
       var origTrans = this.opt.transformer
       if(origTrans != undefined)
-        this.opt.transformer = () => {return origTrans(origLine)}
+        this.opt.transformer = () => {return origTrans(origLine)+formattedSuffix}
 
       this.render()
 
