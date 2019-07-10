@@ -263,6 +263,16 @@ class CommandPrompt extends InputPrompt {
 
   run() {
     return new Promise(function (resolve) {
+      if(this._onEnd == undefined) {
+        this._onEnd = this.onEnd
+        this.onEnd = (s) => {
+          if(this.linesToSkip != undefined) {
+            process.stdout.moveCursor(0,this.linesToSkip)
+            this.linesToSkip = 0
+          }
+          this._onEnd(s)
+        }
+      }
       this._run(function (value) {
         this.addToHistory(context, value)
         resolve(value)
