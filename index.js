@@ -6,8 +6,6 @@ const InputPrompt = require('inquirer/lib/prompts/input')
 
 const histories = {}
 const historyIndexes = {}
-const autoCompleters = {}
-const historyFilters = {}
 
 let context
 function deChalk(inp) {return inp.replace(/\033.+?m/g,"")}
@@ -18,27 +16,21 @@ class CommandPrompt extends InputPrompt {
     if (!histories[context]) {
       histories[context] = []
       historyIndexes[context] = 0
-      if (historyFilter) {
-        historyFilters[context] = historyFilter
-      } else {
-        historyFilters[context] = (l) => {return l}
-      }
     }
   }
 
   initAutoCompletion(context, autoCompletion) {
-    if (!autoCompleters[context]) {
-      if (autoCompletion) {
-        autoCompleters[context] = (l) => this.autoCompleter(l, autoCompletion)
-      } else {
-        autoCompleters[context] = () => []
-      }
+    if (autoCompletion) {
+      this.currentAutoCompleter = (l) => this.autoCompleter(l, autoCompletion)
+    } else {
+      this.currentAutoCompleter = () => []
     }
   }
 
   addToHistory(context, value) {
     this.initHistory(context, this.opt.historyFilter)
-    var newValue = historyFilters[context](value)
+    let newValue = value
+    if(this.opt.historyFilter != undefined) newValue = this.opt.historyFilter(newValue)
     if(newValue !== null && newValue !== undefined) {
       histories[context].push(newValue)
       historyIndexes[context] = histories[context].length
@@ -60,10 +52,6 @@ class CommandPrompt extends InputPrompt {
     }
 
     context = this.opt.context ? this.opt.context : '_default'
-
-
-    this.initHistory(context, this.opt.historyFilter)
-    this.initAutoCompletion(context, this.opt.autoCompletion)
 
     /** go up commands history */
     if (e.key.name === 'up') {
@@ -89,7 +77,7 @@ class CommandPrompt extends InputPrompt {
     else if (e.key.name === 'tab' || (e.key.name === "right" && e.key.shift && this.opt.autocompleteStyle == "multiline")) {
       let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
       try {
-        var ac = autoCompleters[context](line)
+        var ac = this.currentAutoCompleter(line)
         if (ac.match) {
           rewrite(ac.match)
         } else if (ac.matches
@@ -117,6 +105,7 @@ class CommandPrompt extends InputPrompt {
           }
         }
       } catch (err) {
+        console.error(err)
         rewrite(line)
       }
     }
@@ -132,7 +121,7 @@ class CommandPrompt extends InputPrompt {
     if(this.opt.autocompleteStyle == "inline" || this.opt.autocompleteStyle == "multiline") {
       let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
       try {
-        var ac = autoCompleters[context](line)
+        var ac = this.currentAutoCompleter(line)
         if (ac.match) {
           ghostSuffix = ac.match.slice(line.length)
         } else if (ac.matches && this.opt.autocompleteStyle == "multiline" && (this.opt.autocompleteMaxOptions == -1 || ac.matches.length<=(this.opt.autocompleteMaxOptions || 30))) {
@@ -157,9 +146,7 @@ class CommandPrompt extends InputPrompt {
       }
     }
 
-    console.log()
-    // console.log(this.rl.line)
-    if(ghostSuffix == "") {console.log("!"); this.render()}
+    if(ghostSuffix == "") this.render()
     else { /* Displays a suffix which isn't included in the input result */
       var origLine = this.rl.line
       var formattedSuffix = (this.opt.autocompleteColor || chalk.grey)(ghostSuffix)
@@ -266,6 +253,9 @@ class CommandPrompt extends InputPrompt {
   }
 
   run() {
+    this.initHistory(context, this.opt.historyFilter)
+    this.initAutoCompletion(context, this.opt.autoCompletion)
+    // this.onKeypress({key: "initialization"})
     return new Promise(function (resolve) {
       if(this._onEnd == undefined) {
         this._onEnd = this.onEnd
