@@ -150,19 +150,20 @@ class CommandPrompt extends InputPrompt {
   formatList(elems, maxSize = 40, ellipsized) {
     let prefLen = deChalk(this.getPrefix(0,0)).length
     const cols = process.stdout.columns
-    let max = 0
+    let max = 4
     for (let elem of elems) {
-      max = Math.max(max, deChalk(elem).length + 4)
+      max = Math.max(max, deChalk(elem).length+4)
     }
     if (ellipsized && max > maxSize) {
       max = maxSize
     }
-    if(prefLen+max > cols) prefLen = 0
-    let columns = ((cols-prefLen) / max) | 0
+    if(prefLen+max-4 > cols) prefLen = 0
+    prefLen %= max
+    let columns = ((cols-prefLen-max+4) / max + 1) | 0
     let str = ''
     let c = 1
     let r = 0
-    for (let elem of elems) {
+    for (let elem in elems) {
       if(c == 1) {
         let curPrefix = this.getPrefix(r, r)
         let dcPrefix = deChalk(curPrefix).length
@@ -174,12 +175,12 @@ class CommandPrompt extends InputPrompt {
           }
         }
       }
-      let spacedElem = elem
+      let spacedElem = elems[elem]
       if (c !== columns) spacedElem = CommandPrompt.setSpaces(spacedElem, max, ellipsized)
       if(this.opt.autocompleteColor != undefined) spacedElem = this.opt.autocompleteColor(spacedElem)
       str += spacedElem
       if (c === columns) {
-        str += '\n'//' '.repeat(cols - max * columns)
+        if(elem!=elems.length-1) str += '\n'//' '.repeat(cols - max * columns)
         c = 1
         r++
       } else {
