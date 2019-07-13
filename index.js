@@ -19,11 +19,85 @@ class CommandPrompt extends InputPrompt {
     }
   }
 
-  initAutoCompletion(context, autoCompletion) {
+  initAutoCompletion(autoCompletion) {
     if (autoCompletion) {
       this.currentAutoCompleter = (l) => this.autoCompleter(l, autoCompletion)
     } else {
       this.currentAutoCompleter = () => []
+    }
+  }
+
+  initSuffixes() {
+    this.trueRender = this.render
+    this.render = function() {
+      var lineLength = deChalk(this.opt.prefix).length
+                     + deChalk(this.opt.message).length
+                     + (this.opt.transformer?
+                       deChalk(this.opt.transformer(this.rl.line)).length
+                     - deChalk(this.rl.line).length
+                       :0)
+                     + 2
+
+      if(this.ghostSuffix == "") this.trueRender()
+      else { /* Displays a suffix which isn't included in the input result */
+        var origLine = this.rl.line
+        var formattedSuffix = (this.opt.autocompleteColor || chalk.grey)(this.ghostSuffix)
+        this.rl.line+=formattedSuffix
+
+        var origTrans = this.opt.transformer
+        if(origTrans != undefined)
+          this.opt.transformer = () => {return origTrans(origLine)+formattedSuffix}
+
+        this.trueRender()
+
+        if(origTrans != undefined)
+          this.opt.transformer = origTrans
+        this.rl.line = origLine
+
+        process.stdout.moveCursor(
+          Math.min(formattedSuffix.length-deChalk(formattedSuffix).length,lineLength),
+          -formattedSuffix.split("\n").length + 1)
+        this.linesToSkip = formattedSuffix.split("\n").length - 1
+      }
+    }
+  }
+
+  handleAutocomplete() {
+    this.ghostSuffix = ""
+    var lineLength = deChalk(this.opt.prefix).length
+                   + deChalk(this.opt.message).length
+                   + (this.opt.transformer?
+                     deChalk(this.opt.transformer(this.rl.line)).length
+                   - deChalk(this.rl.line).length
+                     :0)
+                   + 2
+
+    if(this.opt.autocompleteStyle == "inline" || this.opt.autocompleteStyle == "multiline") {
+      let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
+      try {
+        var ac = this.currentAutoCompleter(line)
+        if (ac.match) {
+          this.ghostSuffix = ac.match.slice(line.length)
+        } else if (ac.matches && this.opt.autocompleteStyle == "multiline" && (this.opt.autocompleteMaxOptions == -1 || ac.matches.length<=(this.opt.autocompleteMaxOptions || 30))) {
+          var matches = this.opt.short
+              ? this.short(line, ac.matches)
+              : ac.matches
+          if(this.selectedComplete == undefined || this.selectedComplete >= matches.length) this.selectedComplete = 0
+          var sel = this.selectedComplete
+          var prefix = this.opt.autocompletePrefix || ""
+          var shortCorrect = ac.matches[sel].length-matches[sel].length
+
+          this.ghostSuffix = matches[sel].slice(line.length-shortCorrect)
+          matches = matches.slice(sel+1).concat(matches.slice(0, sel))
+          for(var i=0;i<Math.min(matches.length, 6);i++) {
+            if(i==5 && matches.length>6) this.ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + "..."
+            else this.ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + matches[i]
+          }
+        }
+      } catch (err) {
+        console.error(err)
+        rewrite(line)
+      }
     }
   }
 
@@ -45,7 +119,6 @@ class CommandPrompt extends InputPrompt {
       this.rl.write(null, {ctrl: true, name: 'e'})
     }
 
-    var ghostSuffix = ""
     if(this.linesToSkip != undefined) {
       process.stdout.moveCursor(0,this.linesToSkip)
       this.linesToSkip = 0
@@ -110,63 +183,8 @@ class CommandPrompt extends InputPrompt {
       }
     }
 
-    var lineLength = deChalk(this.opt.prefix).length
-                   + deChalk(this.opt.message).length
-                   + (this.opt.transformer?
-                     deChalk(this.opt.transformer(this.rl.line)).length
-                   - deChalk(this.rl.line).length
-                     :0)
-                   + 2
-
-    if(this.opt.autocompleteStyle == "inline" || this.opt.autocompleteStyle == "multiline") {
-      let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
-      try {
-        var ac = this.currentAutoCompleter(line)
-        if (ac.match) {
-          ghostSuffix = ac.match.slice(line.length)
-        } else if (ac.matches && this.opt.autocompleteStyle == "multiline" && (this.opt.autocompleteMaxOptions == -1 || ac.matches.length<=(this.opt.autocompleteMaxOptions || 30))) {
-          var matches = this.opt.short
-              ? this.short(line, ac.matches)
-              : ac.matches
-          if(this.selectedComplete == undefined || this.selectedComplete >= matches.length) this.selectedComplete = 0
-          var sel = this.selectedComplete
-          var prefix = this.opt.autocompletePrefix || ""
-          var shortCorrect = ac.matches[sel].length-matches[sel].length
-
-          ghostSuffix = matches[sel].slice(line.length-shortCorrect)
-          matches = matches.slice(sel+1).concat(matches.slice(0, sel))
-          for(var i=0;i<Math.min(matches.length, 6);i++) {
-            if(i==5 && matches.length>6) ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + "..."
-            else ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + matches[i]
-          }
-        }
-      } catch (err) {
-        console.error(err)
-        rewrite(line)
-      }
-    }
-
-    if(ghostSuffix == "") this.render()
-    else { /* Displays a suffix which isn't included in the input result */
-      var origLine = this.rl.line
-      var formattedSuffix = (this.opt.autocompleteColor || chalk.grey)(ghostSuffix)
-      this.rl.line+=formattedSuffix
-
-      var origTrans = this.opt.transformer
-      if(origTrans != undefined)
-        this.opt.transformer = () => {return origTrans(origLine)+formattedSuffix}
-
-      this.render()
-
-      if(origTrans != undefined)
-        this.opt.transformer = origTrans
-      this.rl.line = origLine
-
-      process.stdout.moveCursor(
-        Math.min(formattedSuffix.length-deChalk(formattedSuffix).length,lineLength),
-        -formattedSuffix.split("\n").length + 1)
-      this.linesToSkip = formattedSuffix.split("\n").length - 1
-    }
+    this.handleAutocomplete()
+    this.render()
   }
 
   short(l, m) {
@@ -254,8 +272,9 @@ class CommandPrompt extends InputPrompt {
 
   run() {
     this.initHistory(context, this.opt.historyFilter)
-    this.initAutoCompletion(context, this.opt.autoCompletion)
-    // this.onKeypress({key: "initialization"})
+    this.initAutoCompletion(this.opt.autoCompletion)
+    this.handleAutocomplete()
+    this.initSuffixes()
     return new Promise(function (resolve) {
       if(this._onEnd == undefined) {
         this._onEnd = this.onEnd
