@@ -11,57 +11,6 @@ let context
 function deChalk(inp) {return inp.replace(/\033.+?m/g,"")}
 class CommandPrompt extends InputPrompt {
 
-
-  initHistory(context, historyFilter) {
-    if (!histories[context]) {
-      histories[context] = []
-      historyIndexes[context] = 0
-    }
-  }
-
-  initAutoCompletion(autoCompletion) {
-    if (autoCompletion) {
-      this.currentAutoCompleter = (l) => this.autoCompleter(l, autoCompletion)
-    } else {
-      this.currentAutoCompleter = () => []
-    }
-  }
-
-  initSuffixes() {
-    this.trueRender = this.render
-    this.render = function() {
-      var lineLength = deChalk(this.opt.prefix).length
-                     + deChalk(this.opt.message).length
-                     + (this.opt.transformer?
-                       deChalk(this.opt.transformer(this.rl.line)).length
-                     - deChalk(this.rl.line).length
-                       :0)
-                     + 2
-
-      if(this.ghostSuffix == "") this.trueRender()
-      else { /* Displays a suffix which isn't included in the input result */
-        var origLine = this.rl.line
-        var formattedSuffix = (this.opt.autocompleteColor || chalk.grey)(this.ghostSuffix)
-        this.rl.line+=formattedSuffix
-
-        var origTrans = this.opt.transformer
-        if(origTrans != undefined)
-          this.opt.transformer = () => {return origTrans(origLine)+formattedSuffix}
-
-        this.trueRender()
-
-        if(origTrans != undefined)
-          this.opt.transformer = origTrans
-        this.rl.line = origLine
-
-        process.stdout.moveCursor(
-          Math.min(formattedSuffix.length-deChalk(formattedSuffix).length,lineLength),
-          -formattedSuffix.split("\n").length + 1)
-        this.linesToSkip = formattedSuffix.split("\n").length - 1
-      }
-    }
-  }
-
   handleAutocomplete() {
     this.ghostSuffix = ""
     var lineLength = deChalk(this.opt.prefix).length
@@ -84,14 +33,16 @@ class CommandPrompt extends InputPrompt {
               : ac.matches
           if(this.selectedComplete == undefined || this.selectedComplete >= matches.length) this.selectedComplete = 0
           var sel = this.selectedComplete
-          var prefix = this.opt.autocompletePrefix || ""
           var shortCorrect = ac.matches[sel].length-matches[sel].length
 
           this.ghostSuffix = matches[sel].slice(line.length-shortCorrect)
-          matches = matches.slice(sel+1).concat(matches.slice(0, sel))
           for(var i=0;i<Math.min(matches.length, 6);i++) {
+            let m = sel+i+1
+            if(m>=matches.length) m-=matches.length
+            let prefix = this.getPrefix(i,m)
+            if(prefix.length > lineLength+shortCorrect) prefix = prefix.slice(0,lineLength+shortCorrect)
             if(i==5 && matches.length>6) this.ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + "..."
-            else this.ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + matches[i]
+            else this.ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + matches[m]
           }
         }
       } catch (err) {
@@ -100,7 +51,12 @@ class CommandPrompt extends InputPrompt {
       }
     }
   }
-
+  getPrefix(line, match) {
+    let o = this.opt.autocompletePrefix
+    if(o == undefined) return ""
+    if(typeof o === 'string' || o instanceof String) return o
+    return o(line, match)
+  }
   addToHistory(context, value) {
     this.initHistory(context, this.opt.historyFilter)
     let newValue = value
@@ -110,83 +66,6 @@ class CommandPrompt extends InputPrompt {
       historyIndexes[context] = histories[context].length
     }
   }
-
-
-  onKeypress(e) {
-
-    const rewrite = line => {
-      this.rl.line = line
-      this.rl.write(null, {ctrl: true, name: 'e'})
-    }
-
-    if(this.linesToSkip != undefined) {
-      process.stdout.moveCursor(0,this.linesToSkip)
-      this.linesToSkip = 0
-    }
-
-    context = this.opt.context ? this.opt.context : '_default'
-
-    /** go up commands history */
-    if (e.key.name === 'up') {
-
-      if (historyIndexes[context] > 0) {
-        historyIndexes[context]--
-        rewrite(histories[context][historyIndexes[context]])
-      }
-    }
-    /** go down commands history or clear input field if there is no newer entry */
-    else if (e.key.name === 'down') {
-      if (histories[context][historyIndexes[context] + 1]) {
-        historyIndexes[context]++
-        rewrite(histories[context][historyIndexes[context]])
-      } else {
-        historyIndexes[context] = histories[context].length
-        rewrite("")
-      }
-    }
-    /** search for command at an autoComplete option
-     * which can be an array or a function which returns an array
-     * */
-    else if (e.key.name === 'tab' || (e.key.name === "right" && e.key.shift && this.opt.autocompleteStyle == "multiline")) {
-      let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
-      try {
-        var ac = this.currentAutoCompleter(line)
-        if (ac.match) {
-          rewrite(ac.match)
-        } else if (ac.matches
-               && (this.opt.autocompleteStyle == "list" || this.opt.autocompleteStyle == undefined)
-               && ((this.opt.autocompleteMaxOptions || -1) == -1 || ac.matches.length<=this.opt.autocompleteMaxOptions)) {
-          console.log()
-          process.stdout.cursorTo(0)
-          var prefix = this.opt.autocompletePrefix || ""
-          console.log(prefix + chalk.red('>> ') + chalk.grey('Available commands:'))
-          console.log(this.formatList(
-              this.opt.short
-                  ? this.short(line, ac.matches)
-                  : ac.matches,
-              prefix
-          ))
-          rewrite(line)
-        } else if(ac.matches && this.opt.autocompleteStyle == "multiline") {
-          if(e.key.shift) {
-            if(this.selectedComplete == undefined || this.selectedComplete >= ac.matches.length) this.selectedComplete = 0
-            rewrite(ac.matches[this.selectedComplete])
-          } else {
-            if(this.selectedComplete == undefined || this.selectedComplete >= ac.matches.length-1) this.selectedComplete = 0
-            else this.selectedComplete++
-            rewrite(line)
-          }
-        }
-      } catch (err) {
-        console.error(err)
-        rewrite(line)
-      }
-    }
-
-    this.handleAutocomplete()
-    this.render()
-  }
-
   short(l, m) {
     var defFunction = (l, m) => {
       if (l) {
@@ -212,7 +91,6 @@ class CommandPrompt extends InputPrompt {
     else
       return this.opt.autocompleteShortener(l, m.slice(0), defFunction)
   }
-
   autoCompleter(line, cmds) {
 
     let max = 0
@@ -269,6 +147,95 @@ class CommandPrompt extends InputPrompt {
       return {match: options.filter(line)}
     }
   }
+  formatList(elems, maxSize = 40, ellipsized) {
+    let prefLen = deChalk(this.getPrefix(0,0)).length
+    const cols = process.stdout.columns
+    let max = 0
+    for (let elem of elems) {
+      max = Math.max(max, deChalk(elem).length + 4)
+    }
+    if (ellipsized && max > maxSize) {
+      max = maxSize
+    }
+    if(prefLen+max > cols) prefLen = 0
+    let columns = ((cols-prefLen) / max) | 0
+    let str = ''
+    let c = 1
+    let r = 0
+    for (let elem of elems) {
+      if(c == 1) {
+        let curPrefix = this.getPrefix(r, r)
+        let dcPrefix = deChalk(curPrefix).length
+        if(dcPrefix<=prefLen+max*(columns-1)) {
+          if(prefLen>=dcPrefix) str += curPrefix + " ".repeat(prefLen-dcPrefix)
+          else {
+            c += Math.ceil((dcPrefix-prefLen)/max)
+            str += curPrefix + " ".repeat(prefLen+max*(c-1)-dcPrefix)
+          }
+        }
+      }
+      let spacedElem = elem
+      if (c !== columns) spacedElem = CommandPrompt.setSpaces(spacedElem, max, ellipsized)
+      if(this.opt.autocompleteColor != undefined) spacedElem = this.opt.autocompleteColor(spacedElem)
+      str += spacedElem
+      if (c === columns) {
+        str += '\n'//' '.repeat(cols - max * columns)
+        c = 1
+        r++
+      } else {
+        c++
+      }
+    }
+    return str
+  }
+
+  initHistory(context, historyFilter) {
+    if (!histories[context]) {
+      histories[context] = []
+      historyIndexes[context] = 0
+    }
+  }
+  initAutoCompletion(autoCompletion) {
+    if (autoCompletion) {
+      this.currentAutoCompleter = (l) => this.autoCompleter(l, autoCompletion)
+    } else {
+      this.currentAutoCompleter = () => []
+    }
+  }
+  initSuffixes() {
+    this.trueRender = this.render
+    this.render = function() {
+      var lineLength = deChalk(this.opt.prefix).length
+                     + deChalk(this.opt.message).length
+                     + (this.opt.transformer?
+                       deChalk(this.opt.transformer(this.rl.line)).length
+                     - deChalk(this.rl.line).length
+                       :0)
+                     + 2
+
+      if(this.ghostSuffix == "") this.trueRender()
+      else { /* Displays a suffix which isn't included in the input result */
+        var origLine = this.rl.line
+        var formattedSuffix = (this.opt.autocompleteColor || chalk.grey)(this.ghostSuffix)
+        this.rl.line+=formattedSuffix
+
+        var origTrans = this.opt.transformer
+        if(origTrans != undefined)
+          this.opt.transformer = () => {return origTrans(origLine)+formattedSuffix}
+
+        this.trueRender()
+
+        if(origTrans != undefined)
+          this.opt.transformer = origTrans
+        this.rl.line = origLine
+
+        process.stdout.moveCursor(
+          Math.min(formattedSuffix.length-deChalk(formattedSuffix).length,lineLength),
+          -formattedSuffix.split("\n").length + 1)
+        this.linesToSkip = formattedSuffix.split("\n").length - 1
+      }
+    }
+  }
 
   run() {
     this.initHistory(context, this.opt.historyFilter)
@@ -292,31 +259,77 @@ class CommandPrompt extends InputPrompt {
       })
     }.bind(this))
   }
+  onKeypress(e) {
 
-  formatList(elems, prefix="", maxSize = 40, ellipsized) {
-    const cols = process.stdout.columns-prefix.length
-    let max = 0
-    for (let elem of elems) {
-      max = Math.max(max, elem.length + 4)
+    const rewrite = line => {
+      this.rl.line = line
+      this.rl.write(null, {ctrl: true, name: 'e'})
     }
-    if (ellipsized && max > maxSize) {
-      max = maxSize
+
+    if(this.linesToSkip != undefined) {
+      process.stdout.moveCursor(0,this.linesToSkip)
+      this.linesToSkip = 0
     }
-    let columns = (cols / max) | 0
-    let str = ''
-    let c = 1
-    for (let elem of elems) {
-      let spacedElem = CommandPrompt.setSpaces(elem, max, ellipsized)
-      if(this.opt.autocompleteColor != undefined) spacedElem = this.opt.autocompleteColor(spacedElem)
-      str += (c==1?prefix:"") + spacedElem
-      if (c === columns) {
-        str += '\n'//' '.repeat(cols - max * columns)
-        c = 1
-      } else {
-        c++
+
+    context = this.opt.context ? this.opt.context : '_default'
+
+    /** go up commands history */
+    if (e.key.name === 'up') {
+
+      if (historyIndexes[context] > 0) {
+        historyIndexes[context]--
+        rewrite(histories[context][historyIndexes[context]])
       }
     }
-    return str
+    /** go down commands history or clear input field if there is no newer entry */
+    else if (e.key.name === 'down') {
+      if (histories[context][historyIndexes[context] + 1]) {
+        historyIndexes[context]++
+        rewrite(histories[context][historyIndexes[context]])
+      } else {
+        historyIndexes[context] = histories[context].length
+        rewrite("")
+      }
+    }
+    /** search for command at an autoComplete option
+     * which can be an array or a function which returns an array
+     * */
+    else if (e.key.name === 'tab' || (e.key.name === "right" && e.key.shift && this.opt.autocompleteStyle == "multiline")) {
+      let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
+      try {
+        var ac = this.currentAutoCompleter(line)
+        if (ac.match) {
+          rewrite(ac.match)
+        } else if (ac.matches
+               && (this.opt.autocompleteStyle == "list" || this.opt.autocompleteStyle == undefined)
+               && ((this.opt.autocompleteMaxOptions || -1) == -1 || ac.matches.length<=this.opt.autocompleteMaxOptions)) {
+          console.log()
+          process.stdout.cursorTo(0)
+          console.log(this.getPrefix(-1,-1) + chalk.red('>> ') + chalk.grey('Available commands:'))
+          console.log(this.formatList(
+              this.opt.short
+                  ? this.short(line, ac.matches)
+                  : ac.matches
+          ))
+          rewrite(line)
+        } else if(ac.matches && this.opt.autocompleteStyle == "multiline") {
+          if(e.key.shift) {
+            if(this.selectedComplete == undefined || this.selectedComplete >= ac.matches.length) this.selectedComplete = 0
+            rewrite(ac.matches[this.selectedComplete])
+          } else {
+            if(this.selectedComplete == undefined || this.selectedComplete >= ac.matches.length-1) this.selectedComplete = 0
+            else this.selectedComplete++
+            rewrite(line)
+          }
+        }
+      } catch (err) {
+        console.error(err)
+        rewrite(line)
+      }
+    }
+
+    this.handleAutocomplete()
+    this.render()
   }
 
 }
