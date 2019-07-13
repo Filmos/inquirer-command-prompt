@@ -123,8 +123,10 @@ class CommandPrompt extends InputPrompt {
 
     var lineLength = deChalk(this.opt.prefix).length
                    + deChalk(this.opt.message).length
-                   + deChalk(this.opt.transformer(this.rl.line)).length
+                   + (this.opt.transformer?
+                     deChalk(this.opt.transformer(this.rl.line)).length
                    - deChalk(this.rl.line).length
+                     :0)
                    + 2
 
     if(this.opt.autocompleteStyle == "inline" || this.opt.autocompleteStyle == "multiline") {
@@ -155,7 +157,9 @@ class CommandPrompt extends InputPrompt {
       }
     }
 
-    if(ghostSuffix == "") this.render()
+    console.log()
+    // console.log(this.rl.line)
+    if(ghostSuffix == "") {console.log("!"); this.render()}
     else { /* Displays a suffix which isn't included in the input result */
       var origLine = this.rl.line
       var formattedSuffix = (this.opt.autocompleteColor || chalk.grey)(ghostSuffix)
@@ -236,7 +240,7 @@ class CommandPrompt extends InputPrompt {
         for (let l of cmds) {
           let cL = l[i]
           let iC = this.opt.autocompleteIgnoreCase
-          if(iC == true) cL = cL.toLowerCase()
+          if(iC == true && cL) cL = cL.toLowerCase()
           if (!l[i]) {
             break LOOP
           } else if (!c) {
