@@ -83,7 +83,7 @@ and you have already typed `foo` it shows just `ba` and `bb` in the suggestions,
 
 The `autocompleteShortener` option is optional. It has to be a function accepting two parameters: current input as a string and list of possible matches as an array of string (those matches are already filtered, so the list will only contain autocompletions that match with the current input); and has to output an array of those matches in a shortened version.
 
-This function will replace the default shortening function (which shortens command based on spaces in them) and will be used when the option `short` is set to true.
+This function will replace the default shortening function (which shortens command based on spaces in them) and will be used when the option [`short`](#short) is set to true.
 
 There is also a third, optional parameter. It's a function which normally would be executed as a shortener. It can be used if you only want custom shortening under certain circumstances or if you want to modify matches before passing them for shortening.
 
@@ -112,7 +112,7 @@ This style will only display autocompletion if there is only one way to autocomp
 
 This is an advanced version of the `inline` style. In addition to displaying single autocompletions, it will also display a list of all possible autocompletions in a list below the current line.
 
-Unlike the `list` style, this style won't display any autocompletions if there are more than 30 possibilities without a common prefix (this amount can be configured with `autocompleteMaxOptions`).
+Unlike the `list` style, this style won't display any autocompletions if there are more than 30 possibilities without a common prefix (this amount can be configured with [`autocompleteMaxOptions`](#autocompleteMaxOptions)).
 Controls are also slightly changed for this style - pressing `tab` will cycle through all options and `shift+right` will complete for the current selection.
 
 ---
@@ -140,16 +140,16 @@ This function should accept two parameters:
   * an integer parameter `lineNumber`, which represent the number of line for which prefix should be returned (1-indexed, counting from the top). It is equal to `0` for the `Available commands:` line.
   * a string parameter 'input', which is the part of the command that's been already typed.
 
-If `autocompleteStyle` is set to `multiline`, the function can accept three additional parameters:
+If [`autocompleteStyle`](#autocompleteStyle) is set to `multiline`, the function can accept three additional parameters:
   * an integer parameter `matchNumber`, which represents which match is present in this line (this value changes when the user cycles through autocomplete options). It is also worth noting that the currently selected option is displayed in the same line as the input and no prefix is generated for it.
-  * a string parameter `matchValue`, which is equal to the match that is displayed in this line (this value is affected by the `short` option). It can also be equal to `...` if it is the last displayed line and there are more matches than can be fit on screen at once.
-  * a string parameter 'fullMatchValue', which is equal to the unshortened `matchValue`. If `short` is equal to `false`, those two parameters are the same.
+  * a string parameter `matchValue`, which is equal to the match that is displayed in this line (this value is affected by the [`short`](#short) option). It can also be equal to `...` if it is the last displayed line and there are more matches than can be fit on screen at once.
+  * a string parameter 'fullMatchValue', which is equal to the unshortened `matchValue`. If [`short`](#short) is equal to `false`, those two parameters are the same.
 
 ##### autocompleteSuffix
 
-This option works exactly like [`autocompletePrefix`](#autocompletePrefix), but adds a string to the end of each line of autocompletions. It can also be both a string and a function, and the function parameters are the same as in `autocompletePrefix`.
+This option works exactly like [`autocompletePrefix`](#autocompletePrefix), but adds a string to the end of each line of autocompletions. It can also be both a string and a function, and the function parameters are the same as in [`autocompletePrefix`](#autocompletePrefix).
 
-It is worth noting that, unlike in `autocompletePrefix`, suffix can be generated for inline autocompletions, those will have a `lineNumber` equal to `0`.
+It is worth noting that, unlike in [`autocompletePrefix`](#autocompletePrefix), suffix can be generated for inline autocompletions, those will have a `lineNumber` equal to `0`.
 
 #### History:
 
