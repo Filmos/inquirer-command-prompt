@@ -36,10 +36,12 @@ class CommandPrompt extends InputPrompt {
           var shortCorrect = ac.matches[sel].length-matches[sel].length
 
           this.ghostSuffix = matches[sel].slice(line.length-shortCorrect)
-          for(var i=0;i<Math.min(matches.length, 6);i++) {
+          for(var i=0;i<Math.min(matches.length-1, 6);i++) {
             let m = sel+i+1
             if(m>=matches.length) m-=matches.length
-            let prefix = this.getPrefix(i,m)
+            let prefix = ""
+            if(i==5 && matches.length>6) prefix = this.getPrefix(i,m,"...","...")
+            else prefix = this.getPrefix(i,m,matches[m],ac.matches[m])
             if(prefix.length > lineLength+shortCorrect) prefix = prefix.slice(0,lineLength+shortCorrect)
             if(i==5 && matches.length>6) this.ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + "..."
             else this.ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + matches[m]
@@ -51,11 +53,12 @@ class CommandPrompt extends InputPrompt {
       }
     }
   }
-  getPrefix(line, match) {
+  getPrefix(line, matchNum, match, fullMatch) {
     let o = this.opt.autocompletePrefix
     if(o == undefined) return ""
     if(typeof o === 'string' || o instanceof String) return o
-    return o(line, match)
+    return o(line, this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' '),
+             matchNum, match, fullMatch)
   }
   addToHistory(context, value) {
     this.initHistory(context, this.opt.historyFilter)
@@ -148,7 +151,7 @@ class CommandPrompt extends InputPrompt {
     }
   }
   formatList(elems, maxSize = 40, ellipsized) {
-    let prefLen = deChalk(this.getPrefix(0,0)).length
+    let prefLen = deChalk(this.getPrefix(0)).length
     const cols = process.stdout.columns
     let max = 4
     for (let elem of elems) {
@@ -165,7 +168,7 @@ class CommandPrompt extends InputPrompt {
     let r = 0
     for (let elem in elems) {
       if(c == 1) {
-        let curPrefix = this.getPrefix(r, r)
+        let curPrefix = this.getPrefix(r)
         let dcPrefix = deChalk(curPrefix).length
         if(dcPrefix<=prefLen+max*(columns-1)) {
           if(prefLen>=dcPrefix) str += curPrefix + " ".repeat(prefLen-dcPrefix)
@@ -306,7 +309,7 @@ class CommandPrompt extends InputPrompt {
                && ((this.opt.autocompleteMaxOptions || -1) == -1 || ac.matches.length<=this.opt.autocompleteMaxOptions)) {
           console.log()
           process.stdout.cursorTo(0)
-          console.log(this.getPrefix(-1,-1) + chalk.red('>> ') + chalk.grey('Available commands:'))
+          console.log(this.getPrefix(-1) + chalk.red('>> ') + chalk.grey('Available commands:'))
           console.log(this.formatList(
               this.opt.short
                   ? this.short(line, ac.matches)
