@@ -25,26 +25,32 @@ class CommandPrompt extends InputPrompt {
       let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
       try {
         var ac = this.currentAutoCompleter(line)
-        if (ac.match) {
-          this.ghostSuffix = ac.match.slice(line.length)
-        } else if (ac.matches && this.opt.autocompleteStyle == "multiline" && (this.opt.autocompleteMaxOptions == -1 || ac.matches.length<=(this.opt.autocompleteMaxOptions || 30))) {
+        if (ac.match && ac.match!=line) this.ghostSuffix = ac.match.slice(line.length)+this.getSuffix(0,0,ac.match,ac.match)
+        else if (ac.matches && this.opt.autocompleteStyle == "multiline" && (this.opt.autocompleteMaxOptions == -1 || ac.matches.length<=(this.opt.autocompleteMaxOptions || 30))) {
           var matches = this.opt.short
               ? this.short(line, ac.matches)
               : ac.matches
           if(this.selectedComplete == undefined || this.selectedComplete >= matches.length) this.selectedComplete = 0
           var sel = this.selectedComplete
-          var shortCorrect = ac.matches[sel].length-matches[sel].length
+          let shortCorrect = ac.matches[sel].length-matches[sel].length
 
-          this.ghostSuffix = matches[sel].slice(line.length-shortCorrect)
+          this.ghostSuffix = matches[sel].slice(line.length-shortCorrect)+this.getSuffix(0,sel,matches[sel],ac.matches[sel])
           for(var i=0;i<Math.min(matches.length-1, 6);i++) {
             let m = sel+i+1
             if(m>=matches.length) m-=matches.length
+
             let prefix = ""
-            if(i==5 && matches.length>6) prefix = this.getPrefix(i,m,"...","...")
-            else prefix = this.getPrefix(i,m,matches[m],ac.matches[m])
+            let suffix = ""
+            if(i==5 && matches.length>6) {prefix = this.getPrefix(i+1,m,"...","..."); suffix = this.getSuffix(i+1,m,"...","...")}
+            else {prefix = this.getPrefix(i+1,m,matches[m],ac.matches[m]); suffix = this.getSuffix(i+1,m,matches[m],ac.matches[m])}
+
             if(prefix.length > lineLength+shortCorrect) prefix = prefix.slice(0,lineLength+shortCorrect)
-            if(i==5 && matches.length>6) this.ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + "..."
-            else this.ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length) + matches[m]
+            // if(suffix.length > lineLength+shortCorrect) prefix = prefix.slice(0,lineLength+shortCorrect)
+
+            this.ghostSuffix += "\n" + prefix + " ".repeat(lineLength+shortCorrect-prefix.length)
+            if(i==5 && matches.length>6)  this.ghostSuffix += "..."
+            else this.ghostSuffix += matches[m]
+            this.ghostSuffix += suffix
           }
         }
       } catch (err) {
@@ -55,6 +61,13 @@ class CommandPrompt extends InputPrompt {
   }
   getPrefix(line, matchNum, match, fullMatch) {
     let o = this.opt.autocompletePrefix
+    if(o == undefined) return ""
+    if(typeof o === 'string' || o instanceof String) return o
+    return o(line, this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' '),
+             matchNum, match, fullMatch)
+  }
+  getSuffix(line, matchNum, match, fullMatch) {
+    let o = this.opt.autocompleteSuffix
     if(o == undefined) return ""
     if(typeof o === 'string' || o instanceof String) return o
     return o(line, this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' '),
@@ -151,7 +164,7 @@ class CommandPrompt extends InputPrompt {
     }
   }
   formatList(elems, maxSize = 40, ellipsized) {
-    let prefLen = deChalk(this.getPrefix(0)).length
+    let prefLen = deChalk(this.getPrefix(1)).length
     const cols = process.stdout.columns
     let max = 4
     for (let elem of elems) {
@@ -165,7 +178,8 @@ class CommandPrompt extends InputPrompt {
     let columns = ((cols-prefLen-max+4) / max + 1) | 0
     let str = ''
     let c = 1
-    let r = 0
+    let r = 1
+    let suffix = ""
     for (let elem in elems) {
       if(c == 1) {
         let curPrefix = this.getPrefix(r)
@@ -176,18 +190,26 @@ class CommandPrompt extends InputPrompt {
             c += Math.ceil((dcPrefix-prefLen)/max)
             str += curPrefix + " ".repeat(prefLen+max*(c-1)-dcPrefix)
           }
-        }
+        } else dcPrefix = 0
+
+        suffix = this.getSuffix(r)
+        let dcSuffix = deChalk(suffix).length
+        if(dcPrefix+dcSuffix<=prefLen+max*(columns-1)) {
+          c += Math.ceil(dcSuffix/max)
+        } else suffix = ""
       }
       let spacedElem = elems[elem]
-      if (c !== columns) spacedElem = CommandPrompt.setSpaces(spacedElem, max, ellipsized)
+      if (c !== columns && elem!=elems.length-1) spacedElem = CommandPrompt.setSpaces(spacedElem, max, ellipsized)
       if(this.opt.autocompleteColor != undefined) spacedElem = this.opt.autocompleteColor(spacedElem)
       str += spacedElem
       if (c === columns) {
+        str += suffix
         if(elem!=elems.length-1) str += '\n'//' '.repeat(cols - max * columns)
         c = 1
         r++
       } else {
         c++
+        if(elem==elems.length-1) str += suffix
       }
     }
     return str
@@ -309,7 +331,7 @@ class CommandPrompt extends InputPrompt {
                && ((this.opt.autocompleteMaxOptions || -1) == -1 || ac.matches.length<=this.opt.autocompleteMaxOptions)) {
           console.log()
           process.stdout.cursorTo(0)
-          console.log(this.getPrefix(-1) + chalk.red('>> ') + chalk.grey('Available commands:'))
+          console.log(this.getPrefix(0) + chalk.red('>> ') + chalk.grey('Available commands:') + this.getSuffix(0))
           console.log(this.formatList(
               this.opt.short
                   ? this.short(line, ac.matches)

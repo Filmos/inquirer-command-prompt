@@ -31,7 +31,7 @@ You can change the type `command` with whatever you like, the prompt is anonymou
         // optional
         autoCompletion: ['ls', 'echo', 'find', 'cat', 'help'],
         autocompleteColor: chalk.grey,
-        autocompletePrefix: function(l,m) {return (l%2==0?"|/| ":"|\\| ")},
+        autocompletePrefix: function(line,input) {return (line%2==0?"|/| ":"|\\| ")},
         context: 0,
         short: false
       }
@@ -137,13 +137,19 @@ The `autocompletePrefix` option is optional and by default it is set to an empty
 This option can also be a function returning string.
 
 This function should accept two parameters:
-  * an integer parameter `lineNumber`, which represent the number of line for which prefix should be returned (0-indexed, counting from the top). It is equal to `-1` for the `Available commands:` line.
+  * an integer parameter `lineNumber`, which represent the number of line for which prefix should be returned (1-indexed, counting from the top). It is equal to `0` for the `Available commands:` line.
   * a string parameter 'input', which is the part of the command that's been already typed.
 
-If `autocompleteStyle` is set to `multiline`, the function can accept two additional parameters:
+If `autocompleteStyle` is set to `multiline`, the function can accept three additional parameters:
   * an integer parameter `matchNumber`, which represents which match is present in this line (this value changes when the user cycles through autocomplete options). It is also worth noting that the currently selected option is displayed in the same line as the input and no prefix is generated for it.
   * a string parameter `matchValue`, which is equal to the match that is displayed in this line (this value is affected by the `short` option). It can also be equal to `...` if it is the last displayed line and there are more matches than can be fit on screen at once.
   * a string parameter 'fullMatchValue', which is equal to the unshortened `matchValue`. If `short` is equal to `false`, those two parameters are the same.
+
+##### autocompleteSuffix
+
+This option works exactly like [`autocompletePrefix`](#autocompletePrefix), but adds a string to the end of each line of autocompletions. It can also be both a string and a function, and the function parameters are the same as in `autocompletePrefix`.
+
+It is worth noting that, unlike in `autocompletePrefix`, suffix can be generated for inline autocompletions, those will have a `lineNumber` equal to `0`.
 
 #### History:
 
