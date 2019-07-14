@@ -275,6 +275,7 @@ class CommandPrompt extends InputPrompt {
             process.stdout.moveCursor(0,this.linesToSkip)
             this.linesToSkip = 0
           }
+          this.render = this.trueRender
           this._onEnd(s)
         }
       }
