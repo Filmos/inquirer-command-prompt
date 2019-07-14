@@ -151,6 +151,8 @@ This option works exactly like [`autocompletePrefix`](#autocompletePrefix), but 
 
 It is worth noting that, unlike in [`autocompletePrefix`](#autocompletePrefix), suffix can be generated for inline autocompletions, those will have a `lineNumber` equal to `0`.
 
+*If you are using `multiline` style, in most cases it is better to use the filter option in the [`autoCompletion`](#autoCompletion).*
+
 #### History:
 
 ##### context

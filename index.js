@@ -125,7 +125,6 @@ class CommandPrompt extends InputPrompt {
       }
       cmds = cmds.slice(1)
     }
-
     cmds = cmds.reduce((sum, el) => {
       var lineEscaped = line.replace(/[?+.\\\[\]()^$*|{}]/g, "\\$&")
       RegExp(`^${lineEscaped}`,(this.opt.autocompleteIgnoreCase?"i":"")).test(el) && sum.push(el) && (max = Math.max(max, el.length))
@@ -153,14 +152,14 @@ class CommandPrompt extends InputPrompt {
         commonStr += c
       }
       if (commonStr) {
-        return {match: options.filter(line + commonStr)}
+        return {match: line + commonStr, options: options}
       } else {
-        return {matches: cmds}
+        return {matches: cmds, options: options}
       }
     } else if (cmds.length === 1) {
-      return {match: options.filter(cmds[0])}
+      return {match: cmds[0], options: options}
     } else {
-      return {match: options.filter(line)}
+      return {match: line, options: options}
     }
   }
   formatList(elems, maxSize = 40, ellipsized) {
@@ -325,7 +324,7 @@ class CommandPrompt extends InputPrompt {
       try {
         var ac = this.currentAutoCompleter(line)
         if (ac.match) {
-          rewrite(ac.match)
+          rewrite(ac.options.filter(ac.match))
         } else if (ac.matches
                && (this.opt.autocompleteStyle == "list" || this.opt.autocompleteStyle == undefined)
                && ((this.opt.autocompleteMaxOptions || -1) == -1 || ac.matches.length<=this.opt.autocompleteMaxOptions)) {
@@ -341,7 +340,7 @@ class CommandPrompt extends InputPrompt {
         } else if(ac.matches && this.opt.autocompleteStyle == "multiline") {
           if(e.key.shift) {
             if(this.selectedComplete == undefined || this.selectedComplete >= ac.matches.length) this.selectedComplete = 0
-            rewrite(ac.matches[this.selectedComplete])
+            rewrite(ac.options.filter(ac.matches[this.selectedComplete]))
           } else {
             if(this.selectedComplete == undefined || this.selectedComplete >= ac.matches.length-1) this.selectedComplete = 0
             else this.selectedComplete++
