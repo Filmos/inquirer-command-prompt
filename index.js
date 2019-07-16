@@ -44,7 +44,9 @@ class CommandPrompt extends InputPrompt {
 
     if(ac.style == "inline" || ac.style == "multiline") {
       try {
-        if (ac.match && ac.match!=line && ac.filter(ac.match)!=line) {
+        if (ac.match
+        && ((!ac.ignoreCase && ac.match!=line && ac.filter(ac.match)!=line)
+        || (ac.ignoreCase && ac.match.toUpperCase()!=line.toUpperCase() && ac.filter(ac.match).toUpperCase()!=line.toUpperCase()))) {
           this.ghostSuffix = ac.color(ac.match.slice(line.length)+ac.suffix(0,0,ac.match,ac.match))
         } else if (ac.matches && ac.style == "multiline") {
           var matches = ac.matchesShortened(line)
@@ -243,7 +245,11 @@ class CommandPrompt extends InputPrompt {
   }
   initSuffixes() {
     this.trueRender = this.render
-    this.render = function() {
+    this.render = function(err) {
+      if(this.linesToSkip != undefined) {
+        process.stdout.moveCursor(0,this.linesToSkip)
+        this.linesToSkip = 0
+      }
       var lineLength = deChalk(this.opt.prefix).length
                      + deChalk(this.opt.suffix).length
                      + deChalk(this.opt.message).length
@@ -252,15 +258,21 @@ class CommandPrompt extends InputPrompt {
                      : deChalk(this.rl.line).length)
                      + 2
 
-      if(!this.ghostSuffix) this.trueRender()
+      let suf = ""
+      if(this.ghostSuffix) suf+=this.ghostSuffix
+      if(err) this.belowSuffix=err
+      if(this.belowSuffix) suf+='\n'+this.belowSuffix
+      if(!suf) this.trueRender()
       else { /* Displays a suffix which isn't included in the input result */
         var origTrans = this.opt.transformer
-        if(!origTrans) this.opt.transformer = (o) => {return o+this.ghostSuffix}
-        else this.opt.transformer = (o) => {return origTrans(o)+this.ghostSuffix}
+        if(!origTrans) this.opt.transformer = (o) => {return o+suf}
+        else this.opt.transformer = (o) => {return origTrans(o)+suf}
         this.trueRender()
         this.opt.transformer = origTrans
+        // console.log()
+        // console.log("!"+this.rl.line)
 
-        let splitSuffix = this.ghostSuffix.split("\n")
+        let splitSuffix = suf.split("\n")
         process.stdout.cursorTo(lineLength)
         process.stdout.moveCursor(0,-splitSuffix.length + 1)
         this.linesToSkip = splitSuffix.length - 1
