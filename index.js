@@ -32,11 +32,12 @@ class CommandPrompt extends InputPrompt {
   handleAutocomplete() {
     this.ghostSuffix = ""
     var lineLength = deChalk(this.opt.prefix).length
+                   + deChalk(this.opt.suffix).length
                    + deChalk(this.opt.message).length
-                   + (this.opt.transformer?
-                     deChalk(this.opt.transformer(this.rl.line)).length
+                   + (this.opt.transformer
+                   ? deChalk(this.opt.transformer(this.rl.line)).length
                    - deChalk(this.rl.line).length
-                     :0)
+                   : 0)
                    + 2
     let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
     var ac = this.currentAutoCompleter(line)
@@ -77,6 +78,14 @@ class CommandPrompt extends InputPrompt {
       }
     }
   }
+  handleSuffixes(line) {
+    let suf = this.opt.inputSuffix
+    if(!suf) return
+    if (typeof suf === 'function') suf = suf(line)
+    let gh = this.ghostSuffix.split("\n")
+    gh[0]+=suf
+    this.ghostSuffix = gh.join("\n")
+  }
 
   addToHistory(context, value) {
     this.initHistory(context, this.opt.historyFilter)
@@ -90,9 +99,7 @@ class CommandPrompt extends InputPrompt {
   autoCompleter(line, cmds) {
     // Handle retrieving autocomplete array and options object
     let max = 0
-    if (typeof cmds === 'function') {
-      cmds = cmds(line)
-    }
+    if (typeof cmds === 'function') cmds = cmds(line)
     let options = { // Default values
       filter: str => str,
       ignoreCase: false,
@@ -238,6 +245,7 @@ class CommandPrompt extends InputPrompt {
     this.trueRender = this.render
     this.render = function() {
       var lineLength = deChalk(this.opt.prefix).length
+                     + deChalk(this.opt.suffix).length
                      + deChalk(this.opt.message).length
                      + (this.opt.transformer
                      ? deChalk(this.opt.transformer(this.rl.line)).length
@@ -264,8 +272,8 @@ class CommandPrompt extends InputPrompt {
     let context = this.opt.context ? this.opt.context : '_default'
     this.initHistory(context, this.opt.historyFilter)
     this.initAutoCompletion(this.opt.autoCompletion)
-    this.handleAutocomplete()
     this.initSuffixes()
+    this.update()
     return new Promise(function (resolve) {
       if(this._onEnd == undefined) {
         this._onEnd = this.onEnd
@@ -283,6 +291,11 @@ class CommandPrompt extends InputPrompt {
         resolve(value)
       })
     }.bind(this))
+  }
+  update() {
+    let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
+    this.handleAutocomplete()
+    this.handleSuffixes(line)
   }
   onKeypress(e) {
 
@@ -347,7 +360,7 @@ class CommandPrompt extends InputPrompt {
       }
     }
 
-    this.handleAutocomplete()
+    this.update()
     this.render()
   }
 

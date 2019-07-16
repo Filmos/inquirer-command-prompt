@@ -172,6 +172,12 @@ This allows you to modify how commands will be saved into history and what will 
 
 If this function returns null given command isn't saved to the memory at all.
 
+#### inputSuffix
+
+This is an optional option, which can be either a string or a function returning a string and accepting current input as a parameter.
+
+This string will be displayed at the end of user input but won't be included in input result. If there are autocompletions and [`style`](#style) isn't `list`, it will be displayed after the first line of autocompletions.
+
 ---
 
 Run the example in `examples/autocompletions.js` to see how the options work.
