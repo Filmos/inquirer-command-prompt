@@ -7,7 +7,6 @@ const InputPrompt = require('inquirer/lib/prompts/input')
 const histories = {}
 const historyIndexes = {}
 
-let context
 function deChalk(inp) {return inp.replace(/\033.+?m/g,"")}
 function short(l, m) {
   if (l) {
@@ -44,8 +43,9 @@ class CommandPrompt extends InputPrompt {
 
     if(ac.style == "inline" || ac.style == "multiline") {
       try {
-        if (ac.match && ac.match!=line) this.ghostSuffix = ac.color(ac.match.slice(line.length)+ac.suffix(0,0,ac.match,ac.match))
-        else if (ac.matches && ac.style == "multiline") {
+        if (ac.match && ac.match!=line && ac.filter(ac.match)!=line) {
+          this.ghostSuffix = ac.color(ac.match.slice(line.length)+ac.suffix(0,0,ac.match,ac.match))
+        } else if (ac.matches && ac.style == "multiline") {
           var matches = ac.matchesShortened(line)
           if(this.selectedCompletion == undefined || this.selectedCompletion >= matches.length) this.selectedCompletion = 0
           var sel = this.selectedCompletion
@@ -261,6 +261,7 @@ class CommandPrompt extends InputPrompt {
   }
 
   run() {
+    let context = this.opt.context ? this.opt.context : '_default'
     this.initHistory(context, this.opt.historyFilter)
     this.initAutoCompletion(this.opt.autoCompletion)
     this.handleAutocomplete()
@@ -295,7 +296,7 @@ class CommandPrompt extends InputPrompt {
       this.linesToSkip = 0
     }
 
-    context = this.opt.context ? this.opt.context : '_default'
+    let context = this.opt.context ? this.opt.context : '_default'
 
     /** go up commands history */
     if (e.key.name === 'up') {

@@ -162,7 +162,7 @@ It is worth noting that, unlike in [`prefix`](#prefix), suffix can be generated 
 
 #### context
 
-The context is important for the history. If you program is handling a specific process you want to have an history of the commands available in that specific context. The `context` has to be an increasing integer starting from 0 (which is the default if no context is passed).
+The context is important for the history. If you program is handling a specific process you want to have an history of the commands available in that specific context. The `context` can be either a string or an integer.
 
 #### historyFilter
 
